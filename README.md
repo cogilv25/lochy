@@ -1,8 +1,6 @@
 # lochy
 A LOC (Lines of code) / SLOC (Source lines of code) / LLOC (Logical lines of code) counter.
 
----
-
 ## Introduction
 This project basically counts the lines of code in a file / directory / project and displays some information about it such as:
 - LOC (Lines of code)
