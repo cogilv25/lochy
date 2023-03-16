@@ -6,20 +6,106 @@
 //#define PDM
 
 //Acronym (Fake command line arguments)
-//#define FCLA
+#define FCLA
 
+//Operations
 #define FILES_COUNT 1
 
-unsigned int countLOC(char* string, unsigned int length)
+struct Measurements
 {
-	//There is no newline character on the last line of a file.
-	int count = 1;
-	for (int i = 0; i < length; ++i)
+	unsigned int characters = 0;
+	unsigned int newLines = 0;
+	unsigned int commentLines = 0;
+};
+
+Measurements performMeasurements(char* string, unsigned int length)
+{
+	Measurements m;
+	
+	for (unsigned int i = 0; i < length; ++i)
 	{
+		//Count newline characters
 		if (string[i] == '\n')
-			++count;
+			++m.newLines;
+
+		//Count all characters
+		++m.characters;
 	}
-	return count;
+	return m;
+}
+
+void printMeasurements(Measurements m)
+{
+	auto printNumber = [](unsigned int number, unsigned int desiredStringLength)
+	{
+		unsigned int spaces = desiredStringLength - ((unsigned int)log10(number)+1);
+		std::cout << number;
+		for (int i = 0; i < spaces; ++i)
+			std::cout << ' ';
+	};
+
+	auto printSpaces = [](int n)
+	{
+		for (int i = 0; i < n; ++i)
+			std::cout << ' ';
+	};
+
+	int maxIntLen = std::max((unsigned int)log10(m.characters), (unsigned int)log10(m.newLines))+1;
+	int rowLen = 26 + 19 + maxIntLen * 2 + 4;
+
+	std::cout << '\n';
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+	std::cout << "   |                                                                        |   \n";
+	std::cout << "   |                       Lochy The Monster Counter                        |   \n";
+	std::cout << "   |                                                                        |   \n";
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+
+	std::cout << "   | Characters         : "; 
+	printNumber(m.characters,maxIntLen);
+	printSpaces(80 - rowLen);
+	std::cout << "Lines Of Code    : ";
+	printNumber(m.newLines + 1, maxIntLen);
+	std::cout << "|   \n";
+
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+
+	std::cout << "   | New Line Characters: ";
+	printNumber(m.newLines,  maxIntLen);
+	printSpaces(80 - rowLen);
+	std::cout << "Lines Of Comments: ";
+	printNumber(m.commentLines,maxIntLen);
+	std::cout << "|   \n";
+
+
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+}
+
+template <class T>
+void printCommaSeperatedList(T* items, unsigned int count)
+{
+	std::cout << "[";
+	
+	if (count > 0)
+		std::cout << items[0];
+
+	for (int i = 1; i < count; ++i)
+		std::cout << ", " << items[i];
+
+	std::cout << ']';
+}
+
+template <class T>
+void printCommaSeperatedListWithQuotes(T* items, unsigned int count)
+{
+	std::cout << "[";
+
+	if (count > 0)
+		std::cout << '"' << items[0];
+
+	for (int i = 1; i < count; ++i)
+		std::cout << "\", \"" << items[i] << '"';
+
+	std::cout << ']';
 }
 
 int main(int argc, char** argv)
@@ -36,12 +122,9 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef PDM
-	std::cout << "Arguments List:\n[\"";
-	if (argc > 0)
-		std::cout << argv[1];
-	for (int i = 2; i < argc; ++i)
-		std::cout << "\", \"" << argv[i];
-	std::cout << "\"]\n";
+	std::cout << "Arguments List:\n";
+	printCommaSeperatedListWithQuotes(argv + 1, argc - 1);
+	std::cout << "\n";
 #endif
 
 	int * flagsPerArguments = new int[argc-1]{};
@@ -85,15 +168,12 @@ int main(int argc, char** argv)
 	delete[] dataArgumentIndexes;
 
 #ifdef PDM
-	std::cout << "\nFlags List:\n[";
-	if (nFlags > 0)
-		std::cout << flags[0];
-	for (int i = 1; i < nFlags; ++i)
-		std::cout << ", " << flags[i];
-	std::cout << "]\n";
+	std::cout << "\nFlags List:\n";
+	printCommaSeperatedList(flags, nFlags);
+	std::cout << "\n";
 	std::cout << "\nData list:\n";
-	for (int i = 0; i < nData; ++i)
-		std::cout << data[i] << '\n';
+	printCommaSeperatedList(data, nFlags);
+	std::cout << "\n";
 #endif
 	int operation = 0;
 	bool operationSet = false;
@@ -140,7 +220,9 @@ int main(int argc, char** argv)
 		fs.read(fileContents, length);
 		fs.close();
 		
-		std::cout << "\nLOC: " << countLOC(fileContents, length);
+		Measurements m = performMeasurements(fileContents, length);
+
+		printMeasurements(m);
 
 		delete[] fileContents;
 	}
