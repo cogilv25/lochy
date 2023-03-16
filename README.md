@@ -18,8 +18,8 @@ SLOC is simply the number of lines of code if all blank lines and comments are r
 LLOC is a bit more complex... I will leave a [link](https://blog.ndepend.com/how-measure-lines-code-lets-count-ways/#:~:text=Source%20lines%20of%20code%E2%80%94the,as%20more%20than%20one%20statement) for now and update this later to explain it myself.
 
 ## Features
-- [ ] Read single files
-- [ ] Simple LOC counting
+- [x] Read single files
+- [x] Simple LOC counting
 - [ ] Read whole directory
 - [ ] Choose file extensions
 - [ ] Read whole project (sub-directories)
