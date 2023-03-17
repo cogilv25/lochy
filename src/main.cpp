@@ -6,7 +6,7 @@
 //#define PDM
 
 //Acronym (Fake command line arguments)
-#define FCLA
+//#define FCLA
 
 //Operations
 #define FILES_COUNT 1
@@ -15,7 +15,9 @@ struct Measurements
 {
 	unsigned int characters = 0;
 	unsigned int newLines = 0;
-	unsigned int commentLines = 0;
+	unsigned int lineComments = 0;
+	unsigned int inlineComments = 0;
+	unsigned int blankLines = 0;
 };
 
 Measurements performMeasurements(char* string, unsigned int length)
@@ -24,9 +26,31 @@ Measurements performMeasurements(char* string, unsigned int length)
 	
 	for (unsigned int i = 0; i < length; ++i)
 	{
+		//Count line comments
+		if(string[i] == '/')
+			if (string[i + 1] == '/')
+			{
+				bool isComment = true;
+				int j = i + 2;
+				for (; j < length; ++j)
+					if (string[j] == '\n')
+						break;
+				m.characters+=j-i;
+				i = j;
+				++m.lineComments;
+			}
+		//Count in-line comments
+		if (string[i] == '*')
+			if (string[i + 1] == '/')
+				++m.inlineComments;
+
 		//Count newline characters
 		if (string[i] == '\n')
+		{
 			++m.newLines;
+			//Count blank lines
+			//go back as long as there are only ' ' and '\t' until you hit a '\n'
+		}
 
 		//Count all characters
 		++m.characters;
@@ -36,9 +60,11 @@ Measurements performMeasurements(char* string, unsigned int length)
 
 void printMeasurements(Measurements m)
 {
-	auto printNumber = [](unsigned int number, unsigned int desiredStringLength)
+	int maxIntLen = std::max((unsigned int)log10(m.characters), (unsigned int)log10(m.newLines)) + 1;
+
+	auto printNumber = [maxIntLen](unsigned int number)
 	{
-		unsigned int spaces = desiredStringLength - ((unsigned int)log10(number)+1);
+		unsigned int spaces = maxIntLen - ((unsigned int)log10(number)+1);
 		std::cout << number;
 		for (int i = 0; i < spaces; ++i)
 			std::cout << ' ';
@@ -50,8 +76,10 @@ void printMeasurements(Measurements m)
 			std::cout << ' ';
 	};
 
-	int maxIntLen = std::max((unsigned int)log10(m.characters), (unsigned int)log10(m.newLines))+1;
-	int rowLen = 26 + 19 + maxIntLen * 2 + 4;
+	int rowSpace = 80 - (26 + 22 + maxIntLen * 2 + 4);
+	int lines = m.newLines + 1;
+	int comments = m.inlineComments + m.lineComments;
+	int sloc = lines - comments - m.blankLines;
 
 	std::cout << '\n';
 	std::cout << "   +------------------------------------------------------------------------+   \n";
@@ -61,19 +89,39 @@ void printMeasurements(Measurements m)
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
 	std::cout << "   | Characters         : "; 
-	printNumber(m.characters,maxIntLen);
-	printSpaces(80 - rowLen);
-	std::cout << "Lines Of Code    : ";
-	printNumber(m.newLines + 1, maxIntLen);
+	printNumber(m.characters);
+	printSpaces(rowSpace);
+	std::cout << "Lines Of Code       : ";
+	printNumber(lines);
 	std::cout << "|   \n";
 
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
 	std::cout << "   | New Line Characters: ";
-	printNumber(m.newLines,  maxIntLen);
-	printSpaces(80 - rowLen);
-	std::cout << "Lines Of Comments: ";
-	printNumber(m.commentLines,maxIntLen);
+	printNumber(m.newLines);
+	printSpaces(rowSpace);
+	std::cout << "Source Lines Of Code: ";
+	printNumber(sloc);
+	std::cout << "|   \n";
+
+
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+
+	std::cout << "   | Inline Comments    : ";
+	printNumber(m.inlineComments);
+	printSpaces(rowSpace);
+	std::cout << "Lines Of Comments   : ";
+	printNumber(comments);
+	std::cout << "|   \n";
+
+
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+
+	std::cout << "   | Line Comments      : ";
+	printNumber(m.lineComments);
+	printSpaces(rowSpace);
+	std::cout << "Blank Lines         : ";
+	printNumber(m.blankLines);
 	std::cout << "|   \n";
 
 
