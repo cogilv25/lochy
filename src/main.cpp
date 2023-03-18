@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 //Acronym (Print Debug Messages)
 //#define PDM
