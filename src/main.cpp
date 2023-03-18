@@ -19,16 +19,21 @@ struct Measurements
 	unsigned int lineComments = 0;
 	unsigned int inlineComments = 0;
 	unsigned int blankLines = 0;
+	unsigned int semicolons = 0;
+	unsigned int nonCodeLines = 0;
 };
 
 Measurements performMeasurements(char* string, unsigned int length)
 {
 	Measurements m;
 	
+	bool isNonCodeLine = true;
 	for (unsigned int i = 0; i < length; ++i)
 	{
-		//Count line comments
+		//Count comments
 		if(string[i] == '/')
+		{
+			//Line Comments
 			if (string[i + 1] == '/')
 			{
 				bool isComment = true;
@@ -40,18 +45,63 @@ Measurements performMeasurements(char* string, unsigned int length)
 				i = j;
 				++m.lineComments;
 			}
-		//Count in-line comments
-		if (string[i] == '*')
-			if (string[i + 1] == '/')
+			//In-line Comments
+			else if(string[i+1] == '*')
+			{
+				int j = i + 2;
+				for(;j < length; ++j)
+				{
+					if(string[j] == '*' && string[j+1] == '/') /* Some Stuff */
+						break;
+					if(string[j] == '\n')
+					{
+						++m.newLines;
+						for(int j = i - 1; j > 0; --j)
+						{
+							if(string[j] == '\n')
+							{
+								++m.blankLines;
+								break;
+							}
+							if(string[j]!=' ' && string[j]!='\t')
+								break;
+						}
+					}
+				}
+				m.characters+=j-i;
+				i=j;
 				++m.inlineComments;
+			}
+
+		}
 
 		//Count newline characters
 		if (string[i] == '\n')
 		{
 			++m.newLines;
+			if(isNonCodeLine)
+				++m.nonCodeLines;
+			isNonCodeLine = true;
 			//Count blank lines
-			//go back as long as there are only ' ' and '\t' until you hit a '\n'
+			for(int j = i - 1; j > 0; --j)
+			{
+				if(string[j] == '\n')
+				{
+					++m.blankLines;
+					break;
+				}
+				if(string[j]!=' ' && string[j]!='\t')
+					break;
+			}
 		}
+
+		//Set isNonCodeLine flag
+		if(string[i]!= ' ' && string[i]!='\t' && string[i]!='\n')
+			isNonCodeLine = false;
+
+		//Count Semicolons
+		if(string[i] == ';')
+			++m.semicolons;
 
 		//Count all characters
 		++m.characters;
@@ -77,10 +127,10 @@ void printMeasurements(Measurements m)
 			std::cout << ' ';
 	};
 
-	int rowSpace = 80 - (26 + 22 + maxIntLen * 2 + 4);
+	int rowSpace = 80 - (26 + 23 + maxIntLen * 2 + 4);
 	int lines = m.newLines + 1;
 	int comments = m.inlineComments + m.lineComments;
-	int sloc = lines - comments - m.blankLines;
+	int sloc = lines - m.nonCodeLines;
 
 	std::cout << '\n';
 	std::cout << "   +------------------------------------------------------------------------+   \n";
@@ -92,36 +142,43 @@ void printMeasurements(Measurements m)
 	std::cout << "   | Characters         : "; 
 	printNumber(m.characters);
 	printSpaces(rowSpace);
-	std::cout << "Lines Of Code       : ";
+	std::cout << "Lines Of Code        : ";
 	printNumber(lines);
 	std::cout << "|   \n";
 
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
-	std::cout << "   | New Line Characters: ";
-	printNumber(m.newLines);
+	std::cout << "   | Comments           : ";
+	printNumber(comments);
 	printSpaces(rowSpace);
-	std::cout << "Source Lines Of Code: ";
+	std::cout << "Source Lines Of Code : ";
 	printNumber(sloc);
 	std::cout << "|   \n";
 
-
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
-	std::cout << "   | Inline Comments    : ";
-	printNumber(m.inlineComments);
+	std::cout << "   | Semi-colons        : ";
+	printNumber(m.semicolons);
 	printSpaces(rowSpace);
-	std::cout << "Lines Of Comments   : ";
-	printNumber(comments);
+	std::cout << "Logical Lines Of Code: ";
+	printNumber(0);
 	std::cout << "|   \n";
 
-
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
-	std::cout << "   | Line Comments      : ";
-	printNumber(m.lineComments);
+	std::cout << "   | Loops              : ";
+	printNumber(0);
 	printSpaces(rowSpace);
-	std::cout << "Blank Lines         : ";
+	std::cout << "Non-code Lines       : ";
+	printNumber(m.nonCodeLines);
+	std::cout << "|   \n";
+
+	std::cout << "   +------------------------------------------------------------------------+   \n";
+	
+	std::cout << "   | Conditionals       : ";
+	printNumber(0);
+	printSpaces(rowSpace);
+	std::cout << "Blank Lines          : ";
 	printNumber(m.blankLines);
 	std::cout << "|   \n";
 

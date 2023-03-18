@@ -23,9 +23,9 @@ LLOC is a bit more complex... I will leave a [link](https://blog.ndepend.com/how
 - [ ] Read whole directory
 - [ ] Choose file extensions
 - [ ] Read whole project (sub-directories)
-- [ ] Blank line counting
+- [x] Blank line counting
 - [x] Comment line counting
-- [ ] SLOC counting
+- [x] SLOC counting
 - [ ] Loop counting
 - [ ] Conditional counting
 - [ ] LLOC counting
