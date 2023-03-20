@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -11,11 +10,12 @@
 
 //Operations
 #define FILES_COUNT 1
+#define DIRECTORIES_COUNT 2
 
 struct Measurements
 {
 	unsigned int characters = 0;
-	unsigned int newLines = 0;
+	unsigned int lines = 0;
 	unsigned int lineComments = 0;
 	unsigned int inlineComments = 0;
 	unsigned int blankLines = 0;
@@ -55,7 +55,7 @@ Measurements performMeasurements(char* string, unsigned int length)
 						break;
 					if(string[j] == '\n')
 					{
-						++m.newLines;
+						++m.lines;
 						for(int j = i - 1; j > 0; --j)
 						{
 							if(string[j] == '\n')
@@ -78,7 +78,7 @@ Measurements performMeasurements(char* string, unsigned int length)
 		//Count newline characters
 		if (string[i] == '\n')
 		{
-			++m.newLines;
+			++m.lines;
 			if(isNonCodeLine)
 				++m.nonCodeLines;
 			isNonCodeLine = true;
@@ -106,12 +106,14 @@ Measurements performMeasurements(char* string, unsigned int length)
 		//Count all characters
 		++m.characters;
 	}
+	//Account for the last line that has no newline character
+	++m.lines;
 	return m;
 }
 
 void printMeasurements(Measurements m)
 {
-	int maxIntLen = std::max((unsigned int)log10(m.characters), (unsigned int)log10(m.newLines)) + 1;
+	int maxIntLen = (unsigned int)log10(m.characters) + 1;
 
 	auto printNumber = [maxIntLen](unsigned int number)
 	{
@@ -128,7 +130,7 @@ void printMeasurements(Measurements m)
 	};
 
 	int rowSpace = 80 - (20 + 24 + maxIntLen * 2 + 4);
-	int lines = m.newLines + 1;
+	int lines = m.lines;
 	int comments = m.inlineComments + m.lineComments;
 	int sloc = lines - m.nonCodeLines;
 
@@ -281,57 +283,63 @@ int main(int argc, char** argv)
 	printCommaSeperatedList(data, nFlags);
 	std::cout << "\n";
 #endif
-	int operation = 0;
+	int operation = FILES_COUNT;
 	bool operationSet = false;
-
-	if (nData != 1)
-	{
-		std::cout << "\nError: Only one file is supported at the moment!\n";
-		goto end;
-	}
 
 	for (int i = 0; i < nFlags; ++i)
 			switch (flags[i])
 			{
-				case 'f':
+				case 'd':
 					if (operationSet)
 					{
 						std::cout << "\nError: Multiple operations set!\n";
 						goto end;
 					}
-					operation = FILES_COUNT;
+					operation = DIRECTORIES_COUNT;
 					operationSet = true;
 					break;
 			}
 
 	if (operation == FILES_COUNT)
 	{
-		std::ifstream fs(data[0], std::ios::in);
-		if (!fs)
+		Measurements m;
+		unsigned int* pM = reinterpret_cast<unsigned int*>(&m);
+		for (int i = 0; i < nData; ++i)
 		{
-			std::cout << "Error: Invalid file path specified!\n";
-			fs.close();
-			goto end;
-		}
+			std::ifstream fs(data[i], std::ios::in);
+			if (!fs)
+			{
+				std::cout << "Error: Invalid file path specified!\n";
+				fs.close();
+				goto end;
+			}
 
 #ifdef PDM
-		std::cout << "\n" << data[0] << " file loaded...\n";
+			std::cout << "\n" << data[i] << " file loaded successfully...\n\n";
 #endif
 
-		fs.seekg(0,fs.end);
-		unsigned int length = fs.tellg();
-		fs.seekg(0, fs.beg);
+			fs.seekg(0, fs.end);
+			unsigned int length = fs.tellg();
+			fs.seekg(0, fs.beg);
 
-		char* fileContents = new char[length];
-		fs.read(fileContents, length);
-		fs.close();
-		
-		Measurements m = performMeasurements(fileContents, length);
+			char* fileContents = new char[length];
+			fs.read(fileContents, length);
+			fs.close();
 
+			Measurements temp = performMeasurements(fileContents, length);
+
+			unsigned int* pTemp = reinterpret_cast<unsigned int*>(&temp);
+			unsigned int nInts = sizeof(Measurements) / 4;
+			for (int i = 0; i < nInts; ++i)
+				pM[i] += pTemp[i];
+
+
+			delete[] fileContents;
+		}
 		printMeasurements(m);
-
-		delete[] fileContents;
 	}
+	else if (operation == DIRECTORIES_COUNT)
+		std::cout << "\nError: Directories not currently supported!\n";
 
 
 end:
