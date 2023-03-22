@@ -20,6 +20,7 @@ It can display the following statistics:
 ## But wait what is SLOC and LLOC!?
 ### SSLOC (Source Lines Of Code)
 SLOC is simply the number of lines of code if all blank lines and comments are removed.
+
 ---
 ### LLOC (Logical Lines Of Code)
 LLOC is an attempt to count the number of logical operations performed by the program.
