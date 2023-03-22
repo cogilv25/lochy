@@ -30,13 +30,14 @@ For my purposes:
 
 ## Features
 - [x] Statistics.
-  - [x] Simple LOC counting.
-  - [x] Blank line counting.
-  - [x] Comment line counting.
-  - [x] SLOC counting.
-  - [x] Loop counting.
-  - [x] Conditional counting.
-  - [x] LLOC counting.
+  - [x] Count lines of code.
+  - [x] Count blank lines.
+  - [x] Count line and in-line comments.
+  - [x] Count source lines of code.
+  - [x] Count for and while loops.
+  - [x] Count if and switch statements.
+  - [x] Count semi-colons.
+  - [x] Count logical lines of code.
 ---
 - [ ] File io.
   - [x] Read single files.
