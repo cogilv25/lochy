@@ -15,7 +15,7 @@ It can display the following statistics:
 - Number of for loops.
 - Number of while loops.
 - Number of if statements.
-- Number os switch statements.
+- Number of switch statements.
 
 ## But wait what is SLOC and LLOC!?
 ### SSLOC (Source Lines Of Code)
