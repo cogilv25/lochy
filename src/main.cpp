@@ -12,6 +12,15 @@
 #define FILES_COUNT 1
 #define DIRECTORIES_COUNT 2
 
+
+//Valid Characters Before a 'Statement' (for, while, if, switch)
+#define VALID_POST_STATEMENT_CHARACTER(x) x == '\n' || x == '\t' \
+|| x == ' ' || x == '('
+
+//Additional Valid Characters Before a 'Statement'
+#define VALID_PRE_STATEMENT_CHARACTER(x) VALID_POST_STATEMENT_CHARACTER(x) \
+|| x == ')' || x == ';' || x == '{' || x == '}'
+
 struct Measurements
 {
 	unsigned int characters = 0;
@@ -21,101 +30,210 @@ struct Measurements
 	unsigned int blankLines = 0;
 	unsigned int semicolons = 0;
 	unsigned int nonCodeLines = 0;
+	unsigned int forLoops = 0;
+	unsigned int whileLoops = 0;
+	unsigned int ifStatements = 0;
+	unsigned int switchStatements = 0;
 };
 
-Measurements performMeasurements(char* string, unsigned int length)
+void getLocStats(Measurements& m, const char* string, unsigned long long length)
 {
-	Measurements m;
-	
 	bool isNonCodeLine = true;
-	for (unsigned int i = 0; i < length; ++i)
+	bool isBlankLine = true;
+	bool isLineComment = false;
+	bool isInlineComment = false;
+
+	for (unsigned int i = 0; i < length && string[i] != 0; ++i)
 	{
-		//Count comments
-		if(string[i] == '/')
+		switch (string[i])
 		{
-			//Line Comments
-			if (string[i + 1] == '/')
-			{
-				bool isComment = true;
-				int j = i + 2;
-				for (; j < length; ++j)
-					if (string[j] == '\n')
-						break;
-				m.characters+=j-i;
-				i = j;
-				++m.lineComments;
-			}
-			//In-line Comments
-			else if(string[i+1] == '*')
-			{
-				int j = i + 2;
-				for(;j < length; ++j)
+		case';':
+			isBlankLine = false;
+			if (!(isLineComment || isInlineComment))
+				++m.semicolons;
+			break;
+		case'/':
+			isBlankLine = false;
+			if (!(isInlineComment || isLineComment))
+				if (i + 1 < length)
+					if (string[i + 1] == '/')
+						isLineComment = true;
+					else if (string[i + 1] == '*')
+						isInlineComment = true;
+			break;
+		case'*':
+			isBlankLine = false;
+			if (isInlineComment && i < length)
+				if (string[i + 1] == '/')
 				{
-					if(string[j] == '*' && string[j+1] == '/') /* Some Stuff */
-						break;
-					if(string[j] == '\n')
-					{
-						++m.lines;
-						for(int j = i - 1; j > 0; --j)
-						{
-							if(string[j] == '\n')
-							{
-								++m.blankLines;
-								break;
-							}
-							if(string[j]!=' ' && string[j]!='\t')
-								break;
-						}
-					}
+					++m.inlineComments;
+					isInlineComment = false;
 				}
-				m.characters+=j-i;
-				i=j;
-				++m.inlineComments;
-			}
-
-		}
-
-		//Count newline characters
-		if (string[i] == '\n')
-		{
+			break;
+		case'\n':
 			++m.lines;
-			if(isNonCodeLine)
+
+			if (isNonCodeLine)
 				++m.nonCodeLines;
+
+			if (isBlankLine)
+				++m.blankLines;
+
+			if (isLineComment)
+				++m.lineComments;
+
+			//Reset state flags
+			isLineComment = false;
+			isBlankLine = true;
 			isNonCodeLine = true;
-			//Count blank lines
-			for(int j = i - 1; j > 0; --j)
+		case' ':
+		case'\t':
+			break;
+			// Ignore carriage returns
+		case'\r':
+			continue;
+
+			//For Loops
+		case'f':
+			if (isLineComment || isInlineComment)
 			{
-				if(string[j] == '\n')
-				{
-					++m.blankLines;
-					break;
-				}
-				if(string[j]!=' ' && string[j]!='\t')
-					break;
+				break;
 			}
+			isBlankLine = false;
+			isNonCodeLine = false;
+			if (i + 3 > length)
+			{
+				break;
+			}
+			if (string[i + 1] != 'o')
+			{
+				break;
+			}
+			if (string[i + 2] != 'r')
+			{
+				break;
+			}
+			if (i > 0)
+				if (!(VALID_PRE_STATEMENT_CHARACTER(string[i - 1])))
+					break;
+
+			if (!(VALID_POST_STATEMENT_CHARACTER(string[i+3])))
+				break;
+
+			++m.forLoops;
+			break;
+
+			//While Loops
+		case 'w':
+			if (isLineComment || isInlineComment)
+				break;
+
+			isBlankLine = false;
+			isNonCodeLine = false;
+			if (i + 5 > length)
+				break;
+
+			if (string[i + 1] != 'h')
+				break;
+			if (string[i + 2] != 'i')
+				break;
+			if (string[i + 3] != 'l')
+				break;
+			if (string[i + 4] != 'e')
+				break;
+
+			if (i > 0)
+				if (!(VALID_PRE_STATEMENT_CHARACTER(string[i - 1])))
+					break;
+
+			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 5])))
+				break;
+
+			++m.whileLoops;
+			break;
+
+			//If Statements
+		case 'i':
+			if (isLineComment || isInlineComment)
+				break;
+
+			isBlankLine = false;
+			isNonCodeLine = false;
+			if (i + 2 > length)
+				break;
+
+			if (string[i + 1] != 'f')
+				break;
+
+			if (i > 0)
+				if (!(VALID_PRE_STATEMENT_CHARACTER(string[i - 1])))
+					break;
+
+			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 2])))
+				break;
+
+			++m.ifStatements;
+			break;
+
+			//Switch Statements
+		case 's':
+			if (isLineComment || isInlineComment)
+				break;
+
+			isBlankLine = false;
+			isNonCodeLine = false;
+			if (i + 6 > length)
+				break;
+
+			if (string[i + 1] != 'w')
+				break;
+			if (string[i + 2] != 'i')
+				break;
+			if (string[i + 3] != 't')
+				break;
+			if (string[i + 4] != 'c')
+				break;
+			if (string[i + 5] != 'h')
+				break;
+
+			if (i > 0)
+				if (!(VALID_PRE_STATEMENT_CHARACTER(string[i - 1])))
+					break;
+
+			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 6])))
+				break;
+
+			++m.switchStatements;
+			break;
+
+		default:
+			isBlankLine = false;
+			if (!(isInlineComment || isLineComment))
+				isNonCodeLine = false;
+			break;
 		}
 
-		//Set isNonCodeLine flag
-		if(string[i]!= ' ' && string[i]!='\t' && string[i]!='\n')
-			isNonCodeLine = false;
-
-		//Count Semicolons
-		if(string[i] == ';')
-			++m.semicolons;
-
-		//Count all characters
 		++m.characters;
+
 	}
 	//Account for the last line that has no newline character
 	++m.lines;
-	return m;
+
+	if (isNonCodeLine)
+		++m.nonCodeLines;
+
+	if (isBlankLine)
+		++m.blankLines;
+
+	if (isLineComment)
+		++m.lineComments;
 }
 
 void printMeasurements(Measurements m)
 {
 	int maxIntLen = (unsigned int)log10(m.characters) + 1;
 
-	auto printNumber = [maxIntLen](unsigned int number)
+	auto printNumber = [maxIntLen](unsigned long long number)
 	{
 		unsigned int spaces = maxIntLen - ((unsigned int)log10(number)+1);
 		std::cout << number;
@@ -123,16 +241,25 @@ void printMeasurements(Measurements m)
 			std::cout << ' ';
 	};
 
-	auto printSpaces = [](int n)
+	auto printSpaces = [](unsigned int n)
 	{
 		for (int i = 0; i < n; ++i)
 			std::cout << ' ';
 	};
 
 	int rowSpace = 80 - (20 + 24 + maxIntLen * 2 + 4);
-	int lines = m.lines;
-	int comments = m.inlineComments + m.lineComments;
-	int sloc = lines - m.nonCodeLines;
+	if (rowSpace < 0)
+	{
+		std::cout << "\nError: Files are too large to display!\n";
+		return;
+	}
+	unsigned int lines = m.lines;
+	unsigned int comments = m.inlineComments + m.lineComments;
+	unsigned int loops = m.forLoops + m.whileLoops;
+	unsigned int conditionals = m.ifStatements + m.switchStatements;
+	unsigned int sloc = lines - m.nonCodeLines;
+	unsigned int lloc = m.forLoops * 2 + m.semicolons
+		+ m.whileLoops * 3 + conditionals;
 
 	std::cout << '\n';
 	std::cout << "   +------------------------------------------------------------------------+   \n";
@@ -163,13 +290,13 @@ void printMeasurements(Measurements m)
 	printNumber(m.semicolons);
 	printSpaces(rowSpace);
 	std::cout << "Logical Lines Of Code : ";
-	printNumber(0);
+	printNumber(lloc);
 	std::cout << "|   \n";
 
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 
 	std::cout << "   | Loops        : ";
-	printNumber(0);
+	printNumber(loops);
 	printSpaces(rowSpace);
 	std::cout << "Non-code Lines        : ";
 	printNumber(m.nonCodeLines);
@@ -178,7 +305,7 @@ void printMeasurements(Measurements m)
 	std::cout << "   +------------------------------------------------------------------------+   \n";
 	
 	std::cout << "   | Conditionals : ";
-	printNumber(0);
+	printNumber(conditionals);
 	printSpaces(rowSpace);
 	std::cout << "Blank Lines           : ";
 	printNumber(m.blankLines);
@@ -218,6 +345,13 @@ void printCommaSeperatedListWithQuotes(T* items, unsigned int count)
 
 int main(int argc, char** argv)
 {
+	/*
+	Measurements test;
+	auto testString = "";
+	unsigned int testLength = 5;
+	getLocStats(test, "for ", testLength);
+	std::cout << "Should be 1: " << test.forLoops << '\n';
+	*/
 #ifdef FCLA
 	// Fake command line arguments
 	char** rAV = argv;
@@ -241,7 +375,7 @@ int main(int argc, char** argv)
 	int nData = 0;
 
 	//Find flags and arguments
-	for(int i = 1; i < argc; ++i)
+	for (int i = 1; i < argc; ++i)
 		if (argv[i][0] == '-')
 		{
 			for (int j = 1; argv[i][j] != 0; j++)
@@ -324,15 +458,10 @@ int main(int argc, char** argv)
 
 			char* fileContents = new char[length];
 			fs.read(fileContents, length);
+			unsigned long long count = fs.gcount();
 			fs.close();
 
-			Measurements temp = performMeasurements(fileContents, length);
-
-			unsigned int* pTemp = reinterpret_cast<unsigned int*>(&temp);
-			unsigned int nInts = sizeof(Measurements) / 4;
-			for (int i = 0; i < nInts; ++i)
-				pM[i] += pTemp[i];
-
+			getLocStats(m, fileContents, count);
 
 			delete[] fileContents;
 		}

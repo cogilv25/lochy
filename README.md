@@ -15,17 +15,21 @@ This project basically counts the lines of code in a file / directory / project 
 ### SSLOC
 SLOC is simply the number of lines of code if all blank lines and comments are removed.
 ### LLOC
-LLOC is a bit more complex... I will leave a [link](https://blog.ndepend.com/how-measure-lines-code-lets-count-ways/#:~:text=Source%20lines%20of%20code%E2%80%94the,as%20more%20than%20one%20statement) for now and update this later to explain it myself.
+LLOC is an attempt to count the number of logical operations performed by the program.
+For my purposes:
+- Any statement ending in a semi-colon counts as 1 line.
+- If statements and switch statements count as 2 lines (TODO: maybe 2 per condition..?).
+- For loops count as 4 lines including the 2 semicolons.
+- While loops count as 3 lines.
 
 ## Features
 - [x] Read single files
 - [x] Simple LOC counting
 - [ ] Read whole directory
-- [ ] Choose file extensions
 - [ ] Read whole project (sub-directories)
 - [x] Blank line counting
 - [x] Comment line counting
 - [x] SLOC counting
-- [ ] Loop counting
-- [ ] Conditional counting
-- [ ] LLOC counting
+- [x] Loop counting
+- [x] Conditional counting
+- [x] LLOC counting
