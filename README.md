@@ -45,6 +45,7 @@ For my purposes:
   - [x] Read single files.
   - [ ] Read whole directories.
   - [ ] Read whole projects (sub-directories).
+  - [ ] Deal with wildcards.
   - [ ] Write output to a file.
 ---
 - [ ] Output style.

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include "fileio.h"
+
 
 //Acronym (Print Debug Messages)
 //#define PDM
@@ -343,15 +345,11 @@ void printCommaSeperatedListWithQuotes(T* items, unsigned int count)
 	std::cout << ']';
 }
 
+unsigned int someGuy = 9;
+
 int main(int argc, char** argv)
 {
-	/*
-	Measurements test;
-	auto testString = "";
-	unsigned int testLength = 5;
-	getLocStats(test, "for ", testLength);
-	std::cout << "Should be 1: " << test.forLoops << '\n';
-	*/
+
 #ifdef FCLA
 	// Fake command line arguments
 	char** rAV = argv;
@@ -437,20 +435,21 @@ int main(int argc, char** argv)
 	if (operation == FILES_COUNT)
 	{
 		Measurements m;
-		unsigned int* pM = reinterpret_cast<unsigned int*>(&m);
 		for (int i = 0; i < nData; ++i)
 		{
-			std::ifstream fs(data[i], std::ios::in);
+			File file = loadFile(data[i]);
+			if (file.count > 0)
+				getLocStats(m, file.data, file.count);
+			else
+				std::cout << "Error: failed to load file (" << data[i] << ")\n";
+			unloadFile(file);
+			/*std::ifstream fs(data[i], std::ios::in);
 			if (!fs)
 			{
 				std::cout << "Error: Invalid file path specified!\n";
 				fs.close();
 				goto end;
 			}
-
-#ifdef PDM
-			std::cout << "\n" << data[i] << " file loaded successfully...\n\n";
-#endif
 
 			fs.seekg(0, fs.end);
 			unsigned int length = fs.tellg();
@@ -463,12 +462,14 @@ int main(int argc, char** argv)
 
 			getLocStats(m, fileContents, count);
 
-			delete[] fileContents;
+			delete[] fileContents;*/
 		}
 		printMeasurements(m);
 	}
 	else if (operation == DIRECTORIES_COUNT)
-		std::cout << "\nError: Directories not currently supported!\n";
+	{
+
+	}
 
 
 end:
