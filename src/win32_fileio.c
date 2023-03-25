@@ -1,9 +1,15 @@
 #ifdef _WIN32
 #include "fileio.h"
 #include <windows.h>
-#include <iostream>
-#pragma comment(lib, "User32.lib")
+#include <stdio.h>
 #define uint unsigned int
+
+typedef struct _node
+{
+	struct _node* next;
+	char* path;
+	UINT64 filesize;
+} Node;
 
 //Gets the file path length or the max win32 path length, whichever is smaller.
 static uint getFilePathLength(const char* path)
@@ -42,7 +48,12 @@ File loadFile(const char* path)
 {
 	//TODO: Error Message
 	if (getFilePathLength(path) > MAX_PATH)
-		return File{0,0};
+	{
+		File file;
+		file.count = 0;
+		file.data = 0;
+		return file;
+	}
 
 	WIN32_FIND_DATAA ffd;
 	HANDLE search = INVALID_HANDLE_VALUE;
@@ -50,16 +61,28 @@ File loadFile(const char* path)
 
 	//TODO: Error Message
 	if (search == INVALID_HANDLE_VALUE)
-		return File{0,0};
+	{
+		File file;
+		file.count = 0;
+		file.data = 0;
+		return file;
+	}
+
 	FindClose(search);
 
 	//TODO: Error Message
 	if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		return File{0,0};
+	{
+		File file;
+		file.count = 0;
+		file.data = 0;
+		return file;
+	}
 
 	//Create our File using the filesize information collected
 	UINT64 filesize = ((UINT64)ffd.nFileSizeHigh < 32) | ffd.nFileSizeLow;
-	File file{(char*)malloc(filesize)};
+	File file;
+	file.data = malloc(filesize);
 
 	file.count = getFileContents(path, file.data, filesize);
 	
@@ -68,18 +91,15 @@ File loadFile(const char* path)
 
 static FileList loadFilesRecursively(const char* path)
 {
-	return FileList{0,0};
+	FileList list;
+	list.files = 0;
+	list.count = 0;
+	return list;
 }
 
 //Avoid too many malloc calls version
 FileList loadFiles(const char* path, bool recursive)
 {
-	struct Node
-	{
-		Node* next;
-		char* path;
-		UINT64 filesize;
-	};
 	//DO NOT ADD DUD FILES TO THE FILELIST THAT YOU RETURN
 	if (recursive)
 		return loadFilesRecursively(path);
@@ -87,7 +107,12 @@ FileList loadFiles(const char* path, bool recursive)
 	//TODO: Error Message
 	uint pathLength = getFilePathLength(path);
 	if (pathLength + 3 > MAX_PATH || pathLength == 0)
-		return FileList{ 0,0 };
+	{
+		FileList list;
+		list.count = 0;
+		list.files = 0;
+		return list;
+	}
 
 	//Append "/*" to the path
 	char searchPath[MAX_PATH];
@@ -100,7 +125,12 @@ FileList loadFiles(const char* path, bool recursive)
 
 	//TODO: Error Message
 	if (search == INVALID_HANDLE_VALUE)
-		return FileList{ 0,0 };
+	{
+		FileList list;
+		list.count = 0;
+		list.files = 0;
+		return list;
+	}
 
 	//Iterate over directory to get file paths and nFiles
 	Node head;
@@ -122,7 +152,7 @@ FileList loadFiles(const char* path, bool recursive)
 
 		tail->filesize = ((UINT64)ffd.nFileSizeHigh < 32) | ffd.nFileSizeLow;
 
-		tail->next = (Node*)malloc(sizeof(Node));
+		tail->next = malloc(sizeof(Node));
 		tail->next->next = 0;
 		tail = tail->next;
 		++nFiles;
@@ -134,7 +164,10 @@ FileList loadFiles(const char* path, bool recursive)
 		 
 	FindClose(search);
 
-	FileList list{(File*)malloc(sizeof(File)*nFiles),0};
+	FileList list;
+	list.files = malloc(sizeof(File) * nFiles);
+	list.count = 0;
+
 	tail = head.next;
 	do
 	{
@@ -158,16 +191,16 @@ FileList loadFiles(const char* path, bool recursive)
 	return list;
 }
 
-void unloadFile(File& file)
+void unloadFile(File* file)
 {
-	free(file.data);
+	free(file->data);
 }
 
-void unloadFileList(FileList& fileList)
+void unloadFileList(FileList* fileList)
 {
-	for (int i = 0; i < fileList.count; ++i)
-		free(fileList.files[i].data);
-	free(fileList.files);
+	for (int i = 0; i < fileList->count; ++i)
+		free(fileList->files[i].data);
+	free(fileList->files);
 }
 
 #endif

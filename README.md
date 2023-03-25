@@ -43,15 +43,15 @@ For my purposes:
 ---
 - [ ] File io.
   - [x] Read single files.
-  - [ ] Read whole directories.
+  - [x] Read whole directories.
   - [ ] Read whole projects (sub-directories).
   - [ ] Deal with wildcards.
   - [ ] Write output to a file.
 ---
 - [ ] Output style.
-  - [x] Print total output for all files.
-  - [ ] Print output organized per file.
-  - [ ] Print output organizes per directory.
-  - [ ] Print output organized per directory and per file.
-  - [ ] Print simple output.
-  - [ ] Print limited output.
+  - [x] Output for all files.
+  - [ ] Organise output per file.
+  - [ ] Organize output per directory.
+  - [ ] Organize output per directory and per file.
+  - [ ] Print usage and help when appropriate.
+  - [ ] Granular output using flags.

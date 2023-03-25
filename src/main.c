@@ -1,19 +1,11 @@
-#include <iostream>
-#include <fstream>
-#include <cmath>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "fileio.h"
-
-
-//Acronym (Print Debug Messages)
-//#define PDM
-
-//Acronym (Fake command line arguments)
-//#define FCLA
 
 //Operations
 #define FILES_COUNT 1
 #define DIRECTORIES_COUNT 2
-
 
 //Valid Characters Before a 'Statement' (for, while, if, switch)
 #define VALID_POST_STATEMENT_CHARACTER(x) x == '\n' || x == '\t' \
@@ -23,22 +15,22 @@
 #define VALID_PRE_STATEMENT_CHARACTER(x) VALID_POST_STATEMENT_CHARACTER(x) \
 || x == ')' || x == ';' || x == '{' || x == '}'
 
-struct Measurements
+typedef struct
 {
-	unsigned int characters = 0;
-	unsigned int lines = 0;
-	unsigned int lineComments = 0;
-	unsigned int inlineComments = 0;
-	unsigned int blankLines = 0;
-	unsigned int semicolons = 0;
-	unsigned int nonCodeLines = 0;
-	unsigned int forLoops = 0;
-	unsigned int whileLoops = 0;
-	unsigned int ifStatements = 0;
-	unsigned int switchStatements = 0;
-};
+	unsigned int characters;
+	unsigned int lines;
+	unsigned int lineComments;
+	unsigned int inlineComments;
+	unsigned int blankLines;
+	unsigned int semicolons;
+	unsigned int nonCodeLines;
+	unsigned int forLoops;
+	unsigned int whileLoops;
+	unsigned int ifStatements;
+	unsigned int switchStatements;
+} Measurements;
 
-void getLocStats(Measurements& m, const char* string, unsigned long long length)
+void getLocStats(Measurements* m, const char* string, unsigned long long length)
 {
 	bool isNonCodeLine = true;
 	bool isBlankLine = true;
@@ -52,7 +44,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 		case';':
 			isBlankLine = false;
 			if (!(isLineComment || isInlineComment))
-				++m.semicolons;
+				++m->semicolons;
 			break;
 		case'/':
 			isBlankLine = false;
@@ -60,7 +52,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 				if (i + 1 < length)
 					if (string[i + 1] == '/')
 						isLineComment = true;
-					else if (string[i + 1] == '*')
+					if (string[i + 1] == '*')
 						isInlineComment = true;
 			break;
 		case'*':
@@ -68,21 +60,21 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			if (isInlineComment && i < length)
 				if (string[i + 1] == '/')
 				{
-					++m.inlineComments;
+					++m->inlineComments;
 					isInlineComment = false;
 				}
 			break;
 		case'\n':
-			++m.lines;
+			++m->lines;
 
 			if (isNonCodeLine)
-				++m.nonCodeLines;
+				++m->nonCodeLines;
 
 			if (isBlankLine)
-				++m.blankLines;
+				++m->blankLines;
 
 			if (isLineComment)
-				++m.lineComments;
+				++m->lineComments;
 
 			//Reset state flags
 			isLineComment = false;
@@ -122,7 +114,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			if (!(VALID_POST_STATEMENT_CHARACTER(string[i+3])))
 				break;
 
-			++m.forLoops;
+			++m->forLoops;
 			break;
 
 			//While Loops
@@ -151,7 +143,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 5])))
 				break;
 
-			++m.whileLoops;
+			++m->whileLoops;
 			break;
 
 			//If Statements
@@ -174,7 +166,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 2])))
 				break;
 
-			++m.ifStatements;
+			++m->ifStatements;
 			break;
 
 			//Switch Statements
@@ -205,7 +197,7 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			if (!(VALID_POST_STATEMENT_CHARACTER(string[i + 6])))
 				break;
 
-			++m.switchStatements;
+			++m->switchStatements;
 			break;
 
 		default:
@@ -215,44 +207,44 @@ void getLocStats(Measurements& m, const char* string, unsigned long long length)
 			break;
 		}
 
-		++m.characters;
+		++m->characters;
 
 	}
 	//Account for the last line that has no newline character
-	++m.lines;
+	++m->lines;
 
 	if (isNonCodeLine)
-		++m.nonCodeLines;
+		++m->nonCodeLines;
 
 	if (isBlankLine)
-		++m.blankLines;
+		++m->blankLines;
 
 	if (isLineComment)
-		++m.lineComments;
+		++m->lineComments;
+}
+
+void printNumber(unsigned long long number, int maxIntLen)
+{
+	unsigned int spaces = maxIntLen - ((unsigned int)log10(number) + 1);
+	printf("%llu",number);
+	for (int i = 0; i < spaces; ++i)
+		printf(" ");
+}
+
+void printSpaces(unsigned int n)
+{
+	for (int i = 0; i < n; ++i)
+		printf(" ");
 }
 
 void printMeasurements(Measurements m)
 {
 	int maxIntLen = (unsigned int)log10(m.characters) + 1;
 
-	auto printNumber = [maxIntLen](unsigned long long number)
-	{
-		unsigned int spaces = maxIntLen - ((unsigned int)log10(number)+1);
-		std::cout << number;
-		for (int i = 0; i < spaces; ++i)
-			std::cout << ' ';
-	};
-
-	auto printSpaces = [](unsigned int n)
-	{
-		for (int i = 0; i < n; ++i)
-			std::cout << ' ';
-	};
-
 	int rowSpace = 80 - (20 + 24 + maxIntLen * 2 + 4);
 	if (rowSpace < 0)
 	{
-		std::cout << "\nError: Files are too large to display!\n";
+		printf("\nError: Files are too large to display!\n");
 		return;
 	}
 	unsigned int lines = m.lines;
@@ -263,113 +255,69 @@ void printMeasurements(Measurements m)
 	unsigned int lloc = m.forLoops * 2 + m.semicolons
 		+ m.whileLoops * 3 + conditionals;
 
-	std::cout << '\n';
-	std::cout << "   +------------------------------------------------------------------------+   \n";
-	std::cout << "   |                                                                        |   \n";
-	std::cout << "   |                       Lochy The Monster Counter                        |   \n";
-	std::cout << "   |                                                                        |   \n";
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("\n");
+	printf("   +------------------------------------------------------------------------+   \n");
+	printf("   |                                                                        |   \n");
+	printf("   |                       Lochy The Monster Counter                        |   \n");
+	printf("   |                                                                        |   \n");
+	printf("   +------------------------------------------------------------------------+   \n");
 
-	std::cout << "   | Characters   : "; 
-	printNumber(m.characters);
+	printf("   | Characters   : "); 
+	printNumber(m.characters, maxIntLen);
 	printSpaces(rowSpace);
-	std::cout << "Lines Of Code         : ";
-	printNumber(lines);
-	std::cout << "|   \n";
+	printf("Lines Of Code         : ");
+	printNumber(lines, maxIntLen);
+	printf("|   \n");
 
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("   +------------------------------------------------------------------------+   \n");
 
-	std::cout << "   | Comments     : ";
-	printNumber(comments);
+	printf("   | Comments     : ");
+	printNumber(comments, maxIntLen);
 	printSpaces(rowSpace);
-	std::cout << "Source Lines Of Code  : ";
-	printNumber(sloc);
-	std::cout << "|   \n";
+	printf("Source Lines Of Code  : ");
+	printNumber(sloc, maxIntLen);
+	printf("|   \n");
 
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("   +------------------------------------------------------------------------+   \n");
 
-	std::cout << "   | Semi-colons  : ";
-	printNumber(m.semicolons);
+	printf("   | Semi-colons  : ");
+	printNumber(m.semicolons, maxIntLen);
 	printSpaces(rowSpace);
-	std::cout << "Logical Lines Of Code : ";
-	printNumber(lloc);
-	std::cout << "|   \n";
+	printf("Logical Lines Of Code : ");
+	printNumber(lloc, maxIntLen);
+	printf("|   \n");
 
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("   +------------------------------------------------------------------------+   \n");
 
-	std::cout << "   | Loops        : ";
-	printNumber(loops);
+	printf("   | Loops        : ");
+	printNumber(loops, maxIntLen);
 	printSpaces(rowSpace);
-	std::cout << "Non-code Lines        : ";
-	printNumber(m.nonCodeLines);
-	std::cout << "|   \n";
+	printf("Non-code Lines        : ");
+	printNumber(m.nonCodeLines, maxIntLen);
+	printf("|   \n");
 
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("   +------------------------------------------------------------------------+   \n");
 	
-	std::cout << "   | Conditionals : ";
-	printNumber(conditionals);
+	printf("   | Conditionals : ");
+	printNumber(conditionals, maxIntLen);
 	printSpaces(rowSpace);
-	std::cout << "Blank Lines           : ";
-	printNumber(m.blankLines);
-	std::cout << "|   \n";
+	printf("Blank Lines           : ");
+	printNumber(m.blankLines, maxIntLen);
+	printf("|   \n");
 
 
-	std::cout << "   +------------------------------------------------------------------------+   \n";
+	printf("   +------------------------------------------------------------------------+   \n");
 }
-
-template <class T>
-void printCommaSeperatedList(T* items, unsigned int count)
-{
-	std::cout << "[";
-	
-	if (count > 0)
-		std::cout << items[0];
-
-	for (int i = 1; i < count; ++i)
-		std::cout << ", " << items[i];
-
-	std::cout << ']';
-}
-
-template <class T>
-void printCommaSeperatedListWithQuotes(T* items, unsigned int count)
-{
-	std::cout << "[";
-
-	if (count > 0)
-		std::cout << '"' << items[0];
-
-	for (int i = 1; i < count; ++i)
-		std::cout << "\", \"" << items[i] << '"';
-
-	std::cout << ']';
-}
-
-unsigned int someGuy = 9;
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN_32
+	printf("\nHello\n");
+#endif 
 
-#ifdef FCLA
-	// Fake command line arguments
-	char** rAV = argv;
-	int rAC = argc;
-	argc = 3;
-	argv = new char* [3];
-	argv[0] = rAV[0];
-	argv[1] = new char[]{ '-', 'd', 0 };
-	argv[2] = new char[]{ 's', 'r', 'c', '\0', 'm', 'a', 'i', 'n', '.', 'c', 'p', 'p', 0 };
-#endif
-
-#ifdef PDM
-	std::cout << "Arguments List:\n";
-	printCommaSeperatedListWithQuotes(argv + 1, argc - 1);
-	std::cout << "\n";
-#endif
-
-	int * flagsPerArguments = new int[argc-1]{};
+	int * flagsPerArguments = calloc(argc-1,sizeof(int));
 	int nFlags = 0;
-	int* dataArgumentIndexes = new int[argc - 1]{};
+	int* dataArgumentIndexes = calloc(argc-1,sizeof(int));
 	int nData = 0;
 
 	//Find flags and arguments
@@ -389,7 +337,7 @@ int main(int argc, char** argv)
 		}
 
 	//Compact flags into single char list and counter (nFlags)
-	char* flags = new char[nFlags];
+	char* flags = malloc(nFlags);
 	{
 		int count = 0;
 		for (int i = 0; i < argc - 1; ++i)
@@ -399,22 +347,15 @@ int main(int argc, char** argv)
 				++count;
 			}
 	}
-	delete[] flagsPerArguments;
+	free(flagsPerArguments);
 
 	//Extract data into string list
-	char** data = new char* [nData];
+	char** data = malloc(nData*sizeof(char*));
 	for (int i = 0; i < nData; ++i)
 		data[i] = argv[dataArgumentIndexes[i]];
-	delete[] dataArgumentIndexes;
+	free(dataArgumentIndexes);
 
-#ifdef PDM
-	std::cout << "\nFlags List:\n";
-	printCommaSeperatedList(flags, nFlags);
-	std::cout << "\n";
-	std::cout << "\nData list:\n";
-	printCommaSeperatedList(data, nFlags);
-	std::cout << "\n";
-#endif
+
 	int operation = FILES_COUNT;
 	bool operationSet = false;
 
@@ -424,57 +365,46 @@ int main(int argc, char** argv)
 				case 'd':
 					if (operationSet)
 					{
-						std::cout << "\nError: Multiple operations set!\n";
+						printf("\nError: Multiple operations set!\n");
 						goto end;
 					}
 					operation = DIRECTORIES_COUNT;
 					operationSet = true;
 					break;
 			}
-
+	Measurements m = {0};
 	if (operation == FILES_COUNT)
 	{
-		Measurements m;
 		for (int i = 0; i < nData; ++i)
 		{
 			File file = loadFile(data[i]);
 			if (file.count > 0)
-				getLocStats(m, file.data, file.count);
+				getLocStats(&m, file.data, file.count);
 			else
-				std::cout << "Error: failed to load file (" << data[i] << ")\n";
-			unloadFile(file);
+				printf("Error: failed to load file (%s)\n", data[i]);
+			unloadFile(&file);
 		}
 		printMeasurements(m);
 	}
 	else if (operation == DIRECTORIES_COUNT)
 	{
-		Measurements m;
 		FileList list = loadFiles(data[0],false);
 
 		for (int i = 0; i < list.count; ++i)
 		{
 			if (list.files[i].count > 0)
-				getLocStats(m, list.files[i].data, list.files[i].count);
+				getLocStats(&m, list.files[i].data, list.files[i].count);
 			else
-				std::cout << "Error: failed to load file (" << data[i] << ")\n";
+				printf("Error: failed to load file (%s)\n", data[i]);
 		}
-		unloadFileList(list);
+		unloadFileList(&list);
 		printMeasurements(m);
 	}
 
 
 end:
 
-#ifdef FCLA
-	//Cleanup fake command line arguments
-	delete[] argv[1];
-	delete[] argv[2];
-	delete[] argv;
-	argv = rAV;
-	argc = rAC;
-#endif
-
-	delete[] flags;
-	delete[] data;
+	free(flags);
+	free(data);
 	return 0;
 }
