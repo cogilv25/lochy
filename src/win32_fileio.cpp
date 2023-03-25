@@ -6,7 +6,7 @@
 #define uint unsigned int
 
 //Gets the file path length or the max win32 path length, whichever is smaller.
-uint getFilePathLength(const char* path)
+static uint getFilePathLength(const char* path)
 {
 	uint pathLength = 0;
 	while (pathLength < MAX_PATH && path[pathLength] != '\0')
@@ -16,6 +16,28 @@ uint getFilePathLength(const char* path)
 	return pathLength + 1;
 }
 
+static DWORD getFileContents(const char * path, char * data, UINT64 filesize)
+{
+	//Open the file
+	HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	//TODO: Error Message
+	if (file == INVALID_HANDLE_VALUE)
+		return 0;
+
+	//Read the file
+	//TODO: Error Message
+	DWORD actualBytesRead;
+	if (FALSE == ReadFile(file, data, filesize, &actualBytesRead, 0))
+	{
+		CloseHandle(file);
+		return 0;
+	}
+	CloseHandle(file);
+
+	return actualBytesRead;
+}
+
 File loadFile(const char* path)
 {
 	//TODO: Error Message
@@ -23,13 +45,13 @@ File loadFile(const char* path)
 		return File{0,0};
 
 	WIN32_FIND_DATAA ffd;
-	HANDLE handle = INVALID_HANDLE_VALUE;
-	handle = FindFirstFileA(path, &ffd);
+	HANDLE search = INVALID_HANDLE_VALUE;
+	search = FindFirstFileA(path, &ffd);
 
 	//TODO: Error Message
-	if (handle == INVALID_HANDLE_VALUE)
+	if (search == INVALID_HANDLE_VALUE)
 		return File{0,0};
-	FindClose(handle);
+	FindClose(search);
 
 	//TODO: Error Message
 	if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -37,37 +59,101 @@ File loadFile(const char* path)
 
 	//Create our File using the filesize information collected
 	UINT64 filesize = ((UINT64)ffd.nFileSizeHigh < 32) | ffd.nFileSizeLow;
-	File file{(char*)malloc(filesize), filesize};
+	File file{(char*)malloc(filesize)};
 
-	//Open the file
-	handle = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, 0,
-						OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	//TODO: Error Message
-	if (handle == INVALID_HANDLE_VALUE)
-	{
-		free(file.data);
-		return File{0,0};
-	}
-
-	//Read the file
-	//TODO: Error Message
-	DWORD actualBytesRead;
-	if (FALSE == ReadFile(handle, file.data, file.count, &actualBytesRead, 0))
-	{
-		free(file.data);
-		CloseHandle(handle);
-		return File{0,0};
-	}
-
-	file.count = actualBytesRead;
-
-	CloseHandle(handle);
+	file.count = getFileContents(path, file.data, filesize);
+	
 	return file;
 }
 
+static FileList loadFilesRecursively(const char* path)
+{
+	return FileList{0,0};
+}
+
+//Avoid too many malloc calls version
 FileList loadFiles(const char* path, bool recursive)
 {
-	FileList list{(File*)malloc(sizeof(File)*4),0,4};
+	struct Node
+	{
+		Node* next;
+		char* path;
+		UINT64 filesize;
+	};
+	//DO NOT ADD DUD FILES TO THE FILELIST THAT YOU RETURN
+	if (recursive)
+		return loadFilesRecursively(path);
+
+	//TODO: Error Message
+	uint pathLength = getFilePathLength(path);
+	if (pathLength + 3 > MAX_PATH || pathLength == 0)
+		return FileList{ 0,0 };
+
+	//Append "/*" to the path
+	char searchPath[MAX_PATH];
+	memcpy(searchPath, path, pathLength);
+	memcpy(searchPath + pathLength - 1, "/*", 3);
+
+	WIN32_FIND_DATAA ffd;
+	HANDLE search = INVALID_HANDLE_VALUE;
+	search = FindFirstFileA(searchPath, &ffd);
+
+	//TODO: Error Message
+	if (search == INVALID_HANDLE_VALUE)
+		return FileList{ 0,0 };
+
+	//Iterate over directory to get file paths and nFiles
+	Node head;
+	head.next = (Node*)malloc(sizeof(Node));
+	Node* tail = head.next;
+	tail->next = 0;
+	int nFiles = 0;
+	do
+	{
+		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			continue;
+
+		tail->path = (char*)malloc(MAX_PATH);
+		
+		//does not copy \0
+		memcpy(tail->path, searchPath, pathLength);
+		//does copy \0
+		strcpy_s(tail->path + pathLength ,MAX_PATH - pathLength, ffd.cFileName);
+
+		tail->filesize = ((UINT64)ffd.nFileSizeHigh < 32) | ffd.nFileSizeLow;
+
+		tail->next = (Node*)malloc(sizeof(Node));
+		tail->next->next = 0;
+		tail = tail->next;
+		++nFiles;
+
+	} while (FindNextFileA(search, &ffd));
+
+	if (GetLastError() != ERROR_NO_MORE_FILES)
+		printf("Unknown Error encountered while iterating over directory files");
+		 
+	FindClose(search);
+
+	FileList list{(File*)malloc(sizeof(File)*nFiles),0};
+	tail = head.next;
+	do
+	{
+		list.files[list.count].data = (char*)malloc(tail->filesize);
+		list.files[list.count].count =
+			getFileContents(tail->path, list.files[list.count].data, tail->filesize);
+		if (list.files[list.count].count > 0)
+			++list.count;
+		else
+		{
+			free(list.files[list.count].data);
+		}
+		Node* prev = tail;
+		tail = tail->next;
+		free(prev->path);
+		free(prev);
+	} while (tail->next != 0);
+
+	free(tail);
 
 	return list;
 }
@@ -82,36 +168,6 @@ void unloadFileList(FileList& fileList)
 	for (int i = 0; i < fileList.count; ++i)
 		free(fileList.files[i].data);
 	free(fileList.files);
-}
-
-bool openDirectory(const char* path)
-{
-	char dirPath[MAX_PATH];
-	WIN32_FIND_DATAA ffd;
-	HANDLE hFind = INVALID_HANDLE_VALUE;
-	DWORD error = 0;
-
-	UINT pathLength = 0;
-	while (pathLength < MAX_PATH && path[pathLength] != '\0')
-		++pathLength;
-	++pathLength;
-	if (pathLength + 2 > MAX_PATH)
-	{
-		std::cout << "\nError: Path is too long!\n";
-		return -1;
-	}
-
-	memcpy(dirPath, path, pathLength);
-	memcpy(dirPath + pathLength - 1, "/*", 3);
-
-	hFind = FindFirstFileA(dirPath, &ffd);
-
-	if (INVALID_HANDLE_VALUE == hFind)
-	{
-		std::cout << "\nError: Directory doesn't exist...\n";
-		return -1;
-	}
-	FindClose(hFind);
 }
 
 #endif

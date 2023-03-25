@@ -1,23 +1,26 @@
 #pragma once
 
+//If Created with loadFile.
+//Always Destroy with unloadFile.
 struct File
 {
 	char* data;
-	unsigned int count;
+	unsigned long long count;
 };
 
+//If Created with loadFiles,
+//Always Destroy with unloadFiles.
 struct FileList
 {
 	File* files;
 	unsigned int count;
-	const unsigned int capacity;
 };
 
-//unloadFile(File& file) must be called after calling this function!
+//Destroy returned File with unloadFile!
 File loadFile(const char* path);
 
 
-//unloadFileList(FileList& filelist) must be called after calling this function!
+//Destroy returned FileList with unloadFileList!
 FileList loadFiles(const char* path, bool recursive);
 
 void unloadFile(File& file);

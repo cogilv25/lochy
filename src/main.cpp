@@ -357,8 +357,8 @@ int main(int argc, char** argv)
 	argc = 3;
 	argv = new char* [3];
 	argv[0] = rAV[0];
-	argv[1] = new char[]{ '-', 'f', 0 };
-	argv[2] = new char[]{ 's', 'r', 'c', '/', 'm', 'a', 'i', 'n', '.', 'c', 'p', 'p', 0 };
+	argv[1] = new char[]{ '-', 'd', 0 };
+	argv[2] = new char[]{ 's', 'r', 'c', '\0', 'm', 'a', 'i', 'n', '.', 'c', 'p', 'p', 0 };
 #endif
 
 #ifdef PDM
@@ -443,32 +443,23 @@ int main(int argc, char** argv)
 			else
 				std::cout << "Error: failed to load file (" << data[i] << ")\n";
 			unloadFile(file);
-			/*std::ifstream fs(data[i], std::ios::in);
-			if (!fs)
-			{
-				std::cout << "Error: Invalid file path specified!\n";
-				fs.close();
-				goto end;
-			}
-
-			fs.seekg(0, fs.end);
-			unsigned int length = fs.tellg();
-			fs.seekg(0, fs.beg);
-
-			char* fileContents = new char[length];
-			fs.read(fileContents, length);
-			unsigned long long count = fs.gcount();
-			fs.close();
-
-			getLocStats(m, fileContents, count);
-
-			delete[] fileContents;*/
 		}
 		printMeasurements(m);
 	}
 	else if (operation == DIRECTORIES_COUNT)
 	{
+		Measurements m;
+		FileList list = loadFiles(data[0],false);
 
+		for (int i = 0; i < list.count; ++i)
+		{
+			if (list.files[i].count > 0)
+				getLocStats(m, list.files[i].data, list.files[i].count);
+			else
+				std::cout << "Error: failed to load file (" << data[i] << ")\n";
+		}
+		unloadFileList(list);
+		printMeasurements(m);
 	}
 
 
