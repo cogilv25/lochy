@@ -1,11 +1,15 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "fileio.h"
 
 //Operations
 #define FILES_COUNT 1
 #define DIRECTORIES_COUNT 2
+
+//Modifiers
+#define RECURSIVELY 1
 
 //Valid Characters Before a 'Statement' (for, while, if, switch)
 #define VALID_POST_STATEMENT_CHARACTER(x) x == '\n' || x == '\t' \
@@ -30,17 +34,30 @@ typedef struct
 	unsigned int switchStatements;
 } Measurements;
 
-void getLocStats(Measurements* m, const char* string, unsigned long long length)
+static inline bool validPostStatementCharacter(char c)
+{
+	return (c == '\n' || c == '\t' || c == ' ' || c == '(');
+}
+
+static inline bool validPreStatementCharacter(char c)
+{
+	return validPostStatementCharacter(c) ||
+	c == ')' || c == ';' || c == '{' || c == '}';
+}
+
+void getLocStats(Measurements* m, const char* string, uint64 length)
 {
 	bool isNonCodeLine = true;
 	bool isBlankLine = true;
 	bool isLineComment = false;
 	bool isInlineComment = false;
 
-	for (unsigned int i = 0; i < length && string[i] != 0; ++i)
+	for (unsigned int i = 0; i < length; ++i)
 	{
 		switch (string[i])
 		{
+		case'\0':
+			return;
 		case';':
 			isBlankLine = false;
 			if (!(isLineComment || isInlineComment))
@@ -311,10 +328,6 @@ void printMeasurements(Measurements m)
 
 int main(int argc, char** argv)
 {
-#ifdef _WIN_32
-	printf("\nHello\n");
-#endif 
-
 	int * flagsPerArguments = calloc(argc-1,sizeof(int));
 	int nFlags = 0;
 	int* dataArgumentIndexes = calloc(argc-1,sizeof(int));
@@ -357,6 +370,7 @@ int main(int argc, char** argv)
 
 
 	int operation = FILES_COUNT;
+	int modifiers = 0;
 	bool operationSet = false;
 
 	for (int i = 0; i < nFlags; ++i)
@@ -371,33 +385,42 @@ int main(int argc, char** argv)
 					operation = DIRECTORIES_COUNT;
 					operationSet = true;
 					break;
+				case 'r':
+					modifiers |= 1;
 			}
 	Measurements m = {0};
 	if (operation == FILES_COUNT)
 	{
 		for (int i = 0; i < nData; ++i)
 		{
-			File file = loadFile(data[i]);
-			if (file.count > 0)
-				getLocStats(&m, file.data, file.count);
+			file_properties* props = get_file_properties(data[i]);
+			char * file_contents = get_file_contents(props);
+
+			if (props->filesize > 0)
+				getLocStats(&m, file_contents, props->filesize);
 			else
 				printf("Error: failed to load file (%s)\n", data[i]);
-			unloadFile(&file);
+
+			free(props);
+			free(file_contents);
 		}
 		printMeasurements(m);
 	}
 	else if (operation == DIRECTORIES_COUNT)
 	{
-		FileList list = loadFiles(data[0],false);
+		file_properties_list* list;
+		if(modifiers & 1)
+			list = get_file_properties_recursively(data[0]);
+		else
+			list = get_file_properties_in_directory(data[0]);
+		string_list* file_contents = get_all_file_contents(list);
 
-		for (int i = 0; i < list.count; ++i)
-		{
-			if (list.files[i].count > 0)
-				getLocStats(&m, list.files[i].data, list.files[i].count);
-			else
-				printf("Error: failed to load file (%s)\n", data[i]);
-		}
-		unloadFileList(&list);
+		for (int i = 0; i < file_contents->count; ++i)
+			getLocStats(&m, file_contents->string_pointers[i], list->properties[i].filesize);
+
+		free(list);
+		free(file_contents);
+
 		printMeasurements(m);
 	}
 

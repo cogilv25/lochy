@@ -26,7 +26,7 @@ SLOC is simply the number of lines of code if all blank lines and comments are r
 LLOC is an attempt to count the number of logical operations performed by the program.
 For my purposes:
 - Any statement ending in a semi-colon counts as 1 line.
-- If statements and switch statements count as 2 lines (TODO: maybe 2 per condition..?).
+- If statements and switch statements count as 2 lines.
 - For loops count as 4 lines including the 2 semicolons.
 - While loops count as 3 lines.
 
@@ -44,7 +44,7 @@ For my purposes:
 - [ ] File io.
   - [x] Read single files.
   - [x] Read whole directories.
-  - [ ] Read whole projects (sub-directories).
+  - [x] Read whole projects (sub-directories).
   - [ ] Deal with wildcards.
   - [ ] Write output to a file.
 ---
@@ -55,3 +55,11 @@ For my purposes:
   - [ ] Organize output per directory and per file.
   - [ ] Print usage and help when appropriate.
   - [ ] Granular output using flags.
+
+## Todo list (after all features are complete)
+- [ ] Revisit LLOC definition
+  - [ ] Should all conditions of if's and switches be counted individually?
+  - [ ] Should we be taking #define usage into account..?
+
+## Known bugs
+- Character count can be slightly different depending on options used, this doesn't appear to affect the accuracy of any of the other reported metrics.
