@@ -49,7 +49,7 @@ file_properties* get_file_properties(const char * path)
 	uint path_length = strlen(path);
 	file_properties* props = malloc(sizeof(file_properties) + path_length + 1);
 	props->filesize = 0;
-	props->path = (char*)(&path + 1);
+	props->path = (char*)(props + 1);
 
 	if (path_length > MAX_PATH || path_length < 1)
 	{
@@ -68,6 +68,7 @@ file_properties* get_file_properties(const char * path)
 	}
 
 	props->filesize = ((uint64)ffd.nFileSizeHigh < 32) | ffd.nFileSizeLow;
+	memcpy(props->path, path, path_length + 1);
 
 	return props;
 }
@@ -264,18 +265,19 @@ void read_file_contents_to_buffer(const char * path, char* buffer, uint64 filesi
 		buffer[0] = '\0';
 		return;
 	}
+	buffer[actualBytesRead]='\0';
 	CloseHandle(file);
 }
 
 string_list* get_all_file_contents(const file_properties_list* path_list)
 {
-	//Little lasty but we can't guarantee how much padding the compiler
+	//Little nasty but we can't guarantee how much padding the compiler
 	// will add to string_list...
 	uint64 total_size = (sizeof(string_list) - sizeof(char*)) +
 		sizeof(char*) * path_list->count;
 
 	for(uint i = 0; i < path_list->count; i++)
-		total_size += path_list->properties[i].filesize;
+		total_size += path_list->properties[i].filesize + 1;
 
 	string_list * list = malloc(total_size);
 
@@ -294,7 +296,7 @@ string_list* get_all_file_contents(const file_properties_list* path_list)
 
 char* get_file_contents(file_properties* path)
 {
-	char * file_contents = malloc(sizeof(*file_contents) * path->filesize);
+	char * file_contents = malloc(sizeof(*file_contents) * path->filesize + 1);
 	read_file_contents_to_buffer(path->path, file_contents, path->filesize);
 	return file_contents;
 }

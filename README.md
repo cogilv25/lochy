@@ -45,8 +45,10 @@ For my purposes:
   - [x] Read single files.
   - [x] Read whole directories.
   - [x] Read whole projects (sub-directories).
-  - [ ] Deal with wildcards.
+  - [x] Deal with wildcards.
+    - [x] Turns out the application doesn't receive them...
   - [ ] Write output to a file.
+  - [ ] Improve efficiency when using wildcards.
 ---
 - [ ] Output style.
   - [x] Output for all files.
@@ -57,9 +59,9 @@ For my purposes:
   - [ ] Granular output using flags.
 
 ## Todo list (after all features are complete)
+- [ ] Remove malloc for flags and assume an upper bound of.. 64?
 - [ ] Revisit LLOC definition
   - [ ] Should all conditions of if's and switches be counted individually?
   - [ ] Should we be taking #define usage into account..?
 
 ## Known bugs
-- Character count can be slightly different depending on options used, this doesn't appear to affect the accuracy of any of the other reported metrics.
