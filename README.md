@@ -2,7 +2,7 @@
 A LOC (Lines of code) / SLOC (Source lines of code) / LLOC (Logical lines of code) counter.
 
 ## Introduction
-This project basically counts the lines of code in files / directories / projects ( directory tree ). It currently only supports C/C++ as that's what I use it for.
+This project basically counts the lines of code in files / directories / projects ( directory tree ). It currently only supports C as that's what I use it for.
 It can display the following statistics:
 - Lines of code.
 - Source lines of code.
@@ -53,15 +53,8 @@ For my purposes:
 - [ ] Output style.
   - [x] Output for all files.
   - [ ] Organise output per file.
-  - [ ] Organize output per directory.
-  - [ ] Organize output per directory and per file.
   - [ ] Print usage and help when appropriate.
   - [ ] Granular output using flags.
 
 ## Todo list (after all features are complete)
 - [ ] Remove malloc for flags and assume an upper bound of.. 64?
-- [ ] Revisit LLOC definition
-  - [ ] Should all conditions of if's and switches be counted individually?
-  - [ ] Should we be taking #define usage into account..?
-
-## Known bugs
